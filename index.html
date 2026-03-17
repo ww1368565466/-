@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星团语词汇测试</title>
+    <script src="word.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&display=swap');
+        body {margin:0;padding:0;background:#0f0f0f;color:#eee;font-family:'Noto Sans SC',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+        .container {width:100%;max-width:860px;background:#fff;border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,0.3);overflow:hidden;}
+        header {background:linear-gradient(90deg,#1e3a8a,#3b82f6);color:white;padding:30px 40px;text-align:center;}
+        h1 {margin:0;font-size:32px;font-weight:700;}
+        .subtitle {font-size:16px;opacity:0.9;margin-top:8px;}
+        .main {padding:40px;background:#f8f9fa;}
+        .mode-toggle {display:flex;background:#e5e7eb;border-radius:9999px;padding:6px;width:fit-content;margin:0 auto 30px;}
+        .mode-btn {padding:10px 28px;border-radius:9999px;font-weight:600;cursor:pointer;transition:all 0.3s;}
+        .mode-btn.active {background:#1e40af;color:white;box-shadow:0 4px 12px rgba(30,64,175,0.3);}
+        .question-card {background:white;border-radius:16px;padding:32px;box-shadow:0 10px 30px rgba(0,0,0,0.08);margin-bottom:30px;}
+        .prompt {font-size:42px;font-weight:700;text-align:center;margin-bottom:32px;color:#1e3a8a;word-break:break-all;}
+        .options {display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+        
+        /* 选项文字改为纯黑色 */
+        .option {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 24px 20px;
+            font-size: 19px;
+            font-weight: 600;
+            color: #000000;             /* ← 这里改成纯黑 */
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            line-height: 1.45;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .option:hover {
+            border-color: #60a5fa;
+            box-shadow: 0 6px 16px rgba(96,165,250,0.3);
+            transform: translateY(-3px);
+        }
+        .option.selected {
+            border-color: #1e40af;
+            background: #eff6ff;
+            box-shadow: 0 6px 16px rgba(30,64,175,0.25);
+        }
+        .option.correct {
+            border-color: #16a34a;
+            background: #f0fdf4;
+            box-shadow: 0 6px 16px rgba(22,163,74,0.25);
+        }
+        .option.wrong {
+            border-color: #dc2626;
+            background: #fef2f2;
+            box-shadow: 0 6px 16px rgba(220,38,38,0.25);
+        }
+        
+        .feedback {margin-top:20px;text-align:center;font-size:20px;font-weight:600;min-height:32px;}
+        .next-btn {display:block;margin:30px auto 0;background:#1e40af;color:white;border:none;padding:16px 52px;font-size:18px;font-weight:600;border-radius:9999px;cursor:pointer;box-shadow:0 8px 20px rgba(30,64,175,0.4);}
+        .next-btn:hover {transform:translateY(-3px);box-shadow:0 12px 25px rgba(30,64,175,0.5);}
+        .stats {text-align:center;color:#64748b;font-size:15px;}
+        footer {text-align:center;padding:20px;background:#f8f9fa;color:#64748b;font-size:14px;}
+        .logo {margin-top:20px;display:flex;justify-content:center;gap:8px;}
+        .star {font-size:42px;filter:drop-shadow(0 4px 8px #f59e0b);}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>星团语词汇测试</h1>
+            <p class="subtitle">选择正确的词义</p>
+        </header>
+        <div class="main">
+            <div class="mode-toggle">
+                <div id="mode-zm2cn" class="mode-btn active" onclick="switchMode('zm2cn')">星团语 → 汉语</div>
+                <div id="mode-cn2zm" class="mode-btn" onclick="switchMode('cn2zm')">汉语 → 星团语</div>
+            </div>
+            <div class="question-card">
+                <div id="prompt" class="prompt">加载中...</div>
+                <div class="options" id="options"></div>
+                <div id="feedback" class="feedback"></div>
+            </div>
+            <div class="stats"><span id="score">正确: 0 / 0</span></div>
+            <button id="next-btn" class="next-btn" onclick="nextQuestion()">下一题</button>
+        </div>
+        <footer>
+            <div class="logo"><span class="star">★</span><span style="font-size:28px;color:#f59e0b;">△</span><span class="star">★</span></div>
+            <p>星团语测试<br>Saroda 制作</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentMode = 'zm2cn';
+        let currentIndex = -1;
+        let correctAnswer = '';
+        let selectedIndex = -1;
+        let score = 0;
+        let totalQuestions = 0;
+        let words = [];
+
+        function init() {
+            if (typeof window.words !== 'undefined' && Array.isArray(window.words)) {
+                words = window.words.filter(w => w.zm && w.cn && w.zm !== '无' && w.cn !== '无');
+            } else {
+                alert('word.js 加载失败！请确认 word.js 和 index.html 在同一文件夹');
+                return;
+            }
+            if (words.length === 0) {
+                alert('words 数组为空！');
+                return;
+            }
+            nextQuestion();
+        }
+
+        function switchMode(newMode) {
+            if (newMode === currentMode) return;
+            currentMode = newMode;
+            document.getElementById('mode-zm2cn').classList.toggle('active', newMode === 'zm2cn');
+            document.getElementById('mode-cn2zm').classList.toggle('active', newMode === 'cn2zm');
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            selectedIndex = -1;
+            document.getElementById('feedback').innerHTML = '';
+            
+            currentIndex = Math.floor(Math.random() * words.length);
+            const word = words[currentIndex];
+            
+            let promptText = currentMode === 'zm2cn' ? word.zm : word.cn;
+            correctAnswer = currentMode === 'zm2cn' ? word.cn : word.zm;
+            
+            let optionValues = [correctAnswer];
+            while (optionValues.length < 4) {
+                const randIdx = Math.floor(Math.random() * words.length);
+                const candidate = currentMode === 'zm2cn' ? words[randIdx].cn : words[randIdx].zm;
+                if (randIdx !== currentIndex && !optionValues.includes(candidate)) {
+                    optionValues.push(candidate);
+                }
+            }
+            optionValues.sort(() => Math.random() - 0.5);
+            
+            document.getElementById('prompt').textContent = promptText;
+            
+            const container = document.getElementById('options');
+            container.innerHTML = '';
+            optionValues.forEach((text, idx) => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.textContent = text;
+                div.onclick = () => selectOption(idx, text);
+                container.appendChild(div);
+            });
+            
+            totalQuestions++;
+            updateScore();
+        }
+
+        function selectOption(idx, chosenText) {
+            if (selectedIndex !== -1) return;
+            selectedIndex = idx;
+            
+            document.querySelectorAll('.option').forEach((opt, i) => {
+                opt.classList.remove('selected','correct','wrong');
+                if (i === idx) opt.classList.add('selected');
+                if (opt.textContent === correctAnswer) opt.classList.add('correct');
+                else if (i === idx) opt.classList.add('wrong');
+            });
+            
+            const fb = document.getElementById('feedback');
+            if (chosenText === correctAnswer) {
+                fb.innerHTML = `<span style="color:#16a34a">✅ 正确！</span>`;
+                score++;
+            } else {
+                fb.innerHTML = `<span style="color:#dc2626">❌ 错误</span><br><small>正确答案：<strong>${correctAnswer}</strong></small>`;
+            }
+            updateScore();
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = `正确: ${score} / ${totalQuestions}`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
