@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星团语词汇测试</title>
+    <script src="word.js"></script> <!-- 你的 word.js 文件，必须包含全局变量 window.words = [...] -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f0f0f;
+            color: #eee;
+            font-family: 'Noto Sans SC', system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 860px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+        .main {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        .mode-toggle {
+            display: flex;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            padding: 6px;
+            width: fit-content;
+            margin: 0 auto 30px;
+        }
+        .mode-btn {
+            padding: 10px 28px;
+            border-radius: 9999px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-btn.active {
+            background: #1e40af;
+            color: white;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        }
+        .question-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        .prompt {
+            font-size: 42px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 32px;
+            color: #1e3a8a;
+            word-break: break-all;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .option {
+            background: #f1f5f9;
+            border: 3px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 22px 20px;
+            font-size: 19px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            line-height: 1.4;
+        }
+        .option:hover {
+            border-color: #3b82f6;
+            transform: translateY(-4px);
+        }
+        .option.selected {
+            border-color: #1e40af;
+            background: #dbeafe;
+        }
+        .option.correct {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        .option.wrong {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .feedback {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            min-height: 32px;
+        }
+        .next-btn {
+            display: block;
+            margin: 30px auto 0;
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 16px 52px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.4);
+            transition: all 0.3s;
+        }
+        .next-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(30, 64, 175, 0.5);
+        }
+        .stats {
+            text-align: center;
+            color: #64748b;
+            font-size: 15px;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .logo {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .star {
+            font-size: 42px;
+            filter: drop-shadow(0 4px 8px #f59e0b);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header>
+            <h1>星团语词汇测试</h1>
+            <p class="subtitle">选择正确的词义</p>
+        </header>
+
+        <div class="main">
+            <!-- 模式切换 -->
+            <div class="mode-toggle">
+                <div id="mode-zm2cn" class="mode-btn active" onclick="switchMode('zm2cn')">星团语 → 汉语</div>
+                <div id="mode-cn2zm" class="mode-btn" onclick="switchMode('cn2zm')">汉语 → 星团语</div>
+            </div>
+
+            <!-- 题目卡片 -->
+            <div class="question-card">
+                <div id="prompt" class="prompt">加载中...</div>
+                
+                <div class="options" id="options">
+                    <!-- 选项由 JS 动态生成 -->
+                </div>
+
+                <div id="feedback" class="feedback"></div>
+            </div>
+
+            <!-- 统计 + 下一题 -->
+            <div class="stats">
+                <span id="score">正确: 0 / 0</span>
+            </div>
+            
+            <button id="next-btn" class="next-btn" onclick="nextQuestion()">下一题</button>
+        </div>
+
+        <!-- 页脚 -->
+        <footer>
+            <div class="logo">
+                <span class="star">★</span>
+                <span style="font-size:28px; color:#f59e0b;">△</span>
+                <span class="star">★</span>
+            </div>
+            <p>A Dictionary of the Star Cluster Language<br>Created for Saroda</p>
+        </footer>
+    </div>
+
+    <script>
+        // ====================== 配置 ======================
+        let currentMode = 'zm2cn';     // 'zm2cn' 或 'cn2zm'
+        let currentIndex = -1;
+        let correctAnswer = '';
+        let selectedIndex = -1;
+        let score = 0;
+        let totalQuestions = 0;
+        let words = [];
+
+        // ====================== 初始化 ======================
+        function init() {
+            // 从 word.js 获取全局变量
+            if (typeof window.words !== 'undefined' && Array.isArray(window.words)) {
+                words = window.words.filter(w => w.zm !== '无' && w.cn !== '无' && w.zm && w.cn);
+            } else {
+                alert('请确保 word.js 已正确加载，并且包含 window.words 数组！');
+                return;
+            }
+            
+            if (words.length === 0) {
+                alert('words 数组为空！请检查 word.js');
+                return;
+            }
+            
+            // 初始第一题
+            nextQuestion();
+        }
+
+        // ====================== 切换模式 ======================
+        function switchMode(newMode) {
+            if (newMode === currentMode) return;
+            currentMode = newMode;
+            
+            // 更新按钮样式
+            document.getElementById('mode-zm2cn').classList.toggle('active', newMode === 'zm2cn');
+            document.getElementById('mode-cn2zm').classList.toggle('active', newMode === 'cn2zm');
+            
+            // 重新出题
+            nextQuestion();
+        }
+
+        // ====================== 生成新题目 ======================
+        function nextQuestion() {
+            // 重置状态
+            selectedIndex = -1;
+            document.getElementById('feedback').innerHTML = '';
+            document.getElementById('next-btn').style.display = 'block';
+            
+            // 随机选一个词
+            currentIndex = Math.floor(Math.random() * words.length);
+            const word = words[currentIndex];
+            
+            let promptText;
+            let optionValues = [];
+            correctAnswer = '';
+            
+            if (currentMode === 'zm2cn') {
+                // 星团语 → 汉语
+                promptText = word.zm;
+                correctAnswer = word.cn;
+                
+                optionValues.push(correctAnswer);
+                while (optionValues.length < 4) {
+                    const randIdx = Math.floor(Math.random() * words.length);
+                    const candidate = words[randIdx].cn;
+                    if (randIdx !== currentIndex && !optionValues.includes(candidate)) {
+                        optionValues.push(candidate);
+                    }
+                }
+            } else {
+                // 汉语 → 星团语
+                promptText = word.cn;
+                correctAnswer = word.zm;
+                
+                optionValues.push(correctAnswer);
+                while (optionValues.length < 4) {
+                    const randIdx = Math.floor(Math.random() * words.length);
+                    const candidate = words[randIdx].zm;
+                    if (randIdx !== currentIndex && !optionValues.includes(candidate)) {
+                        optionValues.push(candidate);
+                    }
+                }
+            }
+            
+            // 打乱选项
+            optionValues = optionValues.sort(() => Math.random() - 0.5);
+            
+            // 渲染提示词
+            document.getElementById('prompt').textContent = promptText;
+            
+            // 渲染选项
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            optionValues.forEach((text, idx) => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.textContent = text;
+                div.dataset.index = idx;
+                div.onclick = () => selectOption(idx, text);
+                optionsContainer.appendChild(div);
+            });
+            
+            totalQuestions++;
+            updateScore();
+        }
+
+        // ====================== 选择选项 ======================
+        function selectOption(idx, chosenText) {
+            // 已经选过则忽略
+            if (selectedIndex !== -1) return;
+            
+            selectedIndex = idx;
+            
+            // 高亮所有选项
+            const allOptions = document.querySelectorAll('.option');
+            allOptions.forEach((opt, i) => {
+                if (i === idx) {
+                    opt.classList.add('selected');
+                }
+                // 检查是否正确
+                if (opt.textContent === correctAnswer) {
+                    opt.classList.add('correct');
+                } else if (i === idx) {
+                    opt.classList.add('wrong');
+                }
+            });
+            
+            // 显示反馈
+            const feedbackEl = document.getElementById('feedback');
+            if (chosenText === correctAnswer) {
+                feedbackEl.innerHTML = `<span style="color:#22c55e">✅ 正确！</span>`;
+                score++;
+            } else {
+                feedbackEl.innerHTML = `<span style="color:#ef4444">❌ 错误</span><br><small>正确答案：<strong>${correctAnswer}</strong></small>`;
+            }
+            
+            updateScore();
+            
+            // 自动 1.5 秒后可点下一题（也可手动点）
+            setTimeout(() => {
+                document.getElementById('next-btn').scrollIntoView({ behavior: 'smooth' });
+            }, 800);
+        }
+
+        // ====================== 更新分数 ======================
+        function updateScore() {
+            document.getElementById('score').textContent = 
+                `正确: ${score} / ${totalQuestions}`;
+        }
+
+        // ====================== 下一题 ======================
+        function nextQuestion() {
+            // 直接出新题（无论是否答过）
+            const btn = document.getElementById('next-btn');
+            btn.style.display = 'none'; // 下一题按钮在答题后才显示，但我们直接调用 nextQuestion
+            // 重新出题
+            const temp = currentIndex; // 防止连续同一题
+            do {
+                currentIndex = Math.floor(Math.random() * words.length);
+            } while (currentIndex === temp && words.length > 1);
+            
+            // 复用上面的逻辑
+            // 为避免重复代码，这里直接调用原来的 nextQuestion 逻辑（已抽离）
+            // 这里我们直接再调用一次完整的 nextQuestion
+            const realNext = () => {
+                selectedIndex = -1;
+                document.getElementById('feedback').innerHTML = '';
+                const word = words[currentIndex];
+                
+                let promptText;
+                let optionValues = [];
+                correctAnswer = currentMode === 'zm2cn' ? word.cn : word.zm;
+                promptText = currentMode === 'zm2cn' ? word.zm : word.cn;
+                
+                optionValues.push(correctAnswer);
+                while (optionValues.length < 4) {
+                    const randIdx = Math.floor(Math.random() * words.length);
+                    const candidate = currentMode === 'zm2cn' ? words[randIdx].cn : words[randIdx].zm;
+                    if (randIdx !== currentIndex && !optionValues.includes(candidate)) {
+                        optionValues.push(candidate);
+                    }
+                }
+                optionValues = optionValues.sort(() => Math.random() - 0.5);
+                
+                document.getElementById('prompt').textContent = promptText;
+                
+                const optionsContainer = document.getElementById('options');
+                optionsContainer.innerHTML = '';
+                optionValues.forEach((text, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'option';
+                    div.textContent = text;
+                    div.onclick = () => selectOption(idx, text);
+                    optionsContainer.appendChild(div);
+                });
+                
+                totalQuestions++;
+                updateScore();
+            };
+            
+            realNext();
+        }
+
+        // ====================== 启动 ======================
+        window.onload = init;
+    </script>
+</body>
+</html>
